@@ -1,7 +1,6 @@
 const net = require("net");
 const readline = require("readline");
 
-// Setup console input
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -10,19 +9,23 @@ const rl = readline.createInterface({
 const server = net.createServer((socket) => {
   console.log("Client connected!");
 
-  // Handle messages from client
   socket.on("data", (data) => {
     console.log("Client: " + data.toString().trim());
-    rl.question("You: ", (input) => {
-      socket.write(input + "\n");
-    });
+    process.stdout.write("You: ");
   });
 
   socket.on("end", () => {
     console.log("Client disconnected.");
+    rl.close();
+  });
+
+  rl.on("line", (line) => {
+    socket.write(line + "\n");
+    process.stdout.write("You: ");
   });
 });
 
 server.listen(1234, () => {
   console.log("Server started. Waiting...");
+  process.stdout.write("You: ");
 });
