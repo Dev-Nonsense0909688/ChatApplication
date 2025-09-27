@@ -1,31 +1,32 @@
 const net = require("net");
-const readline = require("readline");
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
+const clients = [];
 
 const server = net.createServer((socket) => {
   console.log("Client connected!");
+  clients.push(socket);
 
   socket.on("data", (data) => {
-    console.log("Client: " + data.toString().trim());
-    process.stdout.write("You: ");
+    const msg = data.toString().trim();
+
+    // Forward the message to everyone else, no echo back
+    clients.forEach((client) => {
+      if (client !== socket) {
+        client.write(msg + "\n");
+      }
+    });
   });
 
   socket.on("end", () => {
     console.log("Client disconnected.");
-    rl.close();
+    clients.splice(clients.indexOf(socket), 1);
   });
 
-  rl.on("line", (line) => {
-    socket.write(line + "\n");
-    process.stdout.write("You: ");
+  socket.on("error", (err) => {
+    console.error("Socket error:", err.message);
   });
 });
 
 server.listen(1234, () => {
-  console.log("Server started. Waiting...");
-  process.stdout.write("You: ");
+  console.log("Server started. Waiting for clients...");
 });
