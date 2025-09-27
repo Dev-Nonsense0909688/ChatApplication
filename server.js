@@ -1,29 +1,32 @@
-const WebSocket = require("ws");
+const net = require("net");
 
-const PORT = process.env.PORT || 10000; // Render assigns a random port
-const server = new WebSocket.Server({ port: PORT });
+const clients = [];
 
-let clients = [];
-
-server.on("connection", (ws) => {
+const server = net.createServer((socket) => {
   console.log("Client connected!");
-  clients.push(ws);
+  clients.push(socket);
 
-  ws.on("message", (message) => {
-    const msg = message.toString().trim();
+  socket.on("data", (data) => {
+    const msg = data.toString().trim();
 
-    // Forward to everyone else
+    // Forward to everyone else (no echo)
     clients.forEach((client) => {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(msg);
+      if (client !== socket) {
+        client.write(msg + "\n");
       }
     });
   });
 
-  ws.on("close", () => {
+  socket.on("end", () => {
     console.log("Client disconnected.");
-    clients = clients.filter((c) => c !== ws);
+    clients.splice(clients.indexOf(socket), 1);
+  });
+
+  socket.on("error", (err) => {
+    console.error("Socket error:", err.message);
   });
 });
 
-console.log(`Server running on port ${PORT}`);
+server.listen(1234, () => {
+  console.log("Server started on port 1234");
+});
