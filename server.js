@@ -42,7 +42,7 @@ server.on("connection", (ws) => {
 
         // Normal chat message
         const username = clients.get(ws);
-        const formatted = `${username}:${msg}`;
+        const formatted = `${username}: ${msg}`;
         console.log("Broadcasting:", formatted);
         broadcast(ws, formatted);
     });
