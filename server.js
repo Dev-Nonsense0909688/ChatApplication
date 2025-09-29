@@ -1,38 +1,28 @@
-// server.js - TCP Chat Server
-const net = require("net");
+const WebSocket = require("ws");
 
-const server = net.createServer((socket) => {
-  console.log("Client connected:", socket.remoteAddress);
+const PORT = 1234;
+const server = new WebSocket.Server({ port: PORT });
 
-  socket.on("data", (data) => {
-    const msg = data.toString().trim();
-    console.log("Received:", msg);
+let clients = [];
 
-    // Broadcast to everyone else
-    server.connections.forEach((client) => {
-      if (client !== socket) {
-        client.write(msg + "\n");
-      }
+server.on("connection", (ws) => {
+    console.log("New client connected");
+    clients.push(ws);
+
+    ws.on("message", (message) => {
+        console.log("Received:", message.toString());
+        // Broadcast to all other clients
+        clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN) {
+                client.send(message.toString());
+            }
+        });
     });
-  });
 
-  socket.on("end", () => {
-    console.log("Client disconnected:", socket.remoteAddress);
-  });
+    ws.on("close", () => {
+        console.log("Client disconnected");
+        clients = clients.filter(c => c !== ws);
+    });
 });
 
-server.connections = [];
-
-server.on("connection", (socket) => {
-  server.connections.push(socket);
-  socket.write("Welcome to TCP chat!\n");
-
-  socket.on("close", () => {
-    server.connections = server.connections.filter((s) => s !== socket);
-  });
-});
-
-const PORT = process.env.PORT || 1234;
-server.listen(PORT, () => {
-  console.log("TCP server running on port", PORT);
-});
+console.log(`WebSocket server running on ws://localhost:${PORT}`);
