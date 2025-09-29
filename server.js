@@ -6,20 +6,18 @@ const server = new WebSocket.Server({ port: PORT });
 let clients = new Map(); // ws -> username
 
 function broadcast(sender, message) {
-    for (let [client, username] of clients.entries()) {
+    for (let [client] of clients.entries()) {
         if (client !== sender && client.readyState === WebSocket.OPEN) {
             client.send(message);
         }
     }
 }
 
-function sendUserList() {
+function sendUserList(toClient) {
     const users = Array.from(clients.values());
-    const payload = "ONLINE:" + users.join(",");
-    for (let [client] of clients.entries()) {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(payload);
-        }
+    const payload = "ONLINE:" + users.join(", ");
+    if (toClient.readyState === WebSocket.OPEN) {
+        toClient.send(payload);
     }
 }
 
@@ -33,8 +31,13 @@ server.on("connection", (ws) => {
         if (!clients.has(ws)) {
             clients.set(ws, msg);
             console.log(`User joined: ${msg}`);
-            sendUserList();
             return;
+        }
+
+        // Special command
+        if (msg === "*online") {
+            sendUserList(ws); // send only to requester
+            return; // don't broadcast
         }
 
         // Normal chat message
@@ -47,7 +50,6 @@ server.on("connection", (ws) => {
     ws.on("close", () => {
         console.log("Client disconnected");
         clients.delete(ws);
-        sendUserList();
     });
 });
 
